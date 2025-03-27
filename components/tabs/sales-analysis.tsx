@@ -1,13 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Search, Download, ArrowUpDown } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Search, Download } from 'lucide-react'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   BarChart,
   Bar,
@@ -17,393 +15,375 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
+  LineChart,
+  Line,
+  ReferenceLine,
 } from "@/components/ui/chart"
 
 // Types
-interface SalesData {
-  id: string
+interface ProductSales {
   product: string
   category: string
-  salesVolume: number
-  revenue: number
-  commodityImpact: "Low" | "Medium" | "High" | "Very High"
-  inventoryLevel: "Low" | "Medium" | "High" | "N/A"
-  trend: "up" | "down" | "stable"
+  salesVolume: string
+  revenue: string
+  commodityImpact: string
+  inventoryLevel: string
 }
 
-export default function SalesAnalysis() {
-  const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedTimeframe, setSelectedTimeframe] = useState("6m")
-  const [selectedCategory, setSelectedCategory] = useState("all")
+interface SalesVsCommodity {
+  month: string
+  sales: number
+  price: number
+}
 
-  // Simulate loading data
-  useState(() => {
-    const timer = setTimeout(() => {
-      setLoading(false)
-    }, 1000)
-    return () => clearTimeout(timer)
-  })
+interface InventoryData {
+  day: number
+  level: number
+}
 
-  // Mock data for sales
-  const salesData: SalesData[] = [
-    {
-      id: "1",
-      product: "Plastic Containers",
-      category: "Packaging",
-      salesVolume: 12450,
-      revenue: 45230,
-      commodityImpact: "High",
-      inventoryLevel: "Low",
-      trend: "up",
-    },
-    {
-      id: "2",
-      product: "Packaging Materials",
-      category: "Packaging",
-      salesVolume: 8320,
-      revenue: 28750,
-      commodityImpact: "Medium",
-      inventoryLevel: "Medium",
-      trend: "stable",
-    },
-    {
-      id: "3",
-      product: "Fuel Products",
-      category: "Energy",
-      salesVolume: 15780,
-      revenue: 89450,
-      commodityImpact: "Very High",
-      inventoryLevel: "High",
-      trend: "up",
-    },
-    {
-      id: "4",
-      product: "Chemical Solutions",
-      category: "Chemicals",
-      salesVolume: 5230,
-      revenue: 32780,
-      commodityImpact: "Medium",
-      inventoryLevel: "Low",
-      trend: "down",
-    },
-    {
-      id: "5",
-      product: "Transport Services",
-      category: "Services",
-      salesVolume: 3450,
-      revenue: 67890,
-      commodityImpact: "High",
-      inventoryLevel: "N/A",
-      trend: "up",
-    },
-  ]
+const SalesAnalysis = () => {
+  const [searchTerm, setSearchTerm] = useState("")
+  const [categoryFilter, setCategoryFilter] = useState("All")
+  const [salesData, setSalesData] = useState<ProductSales[]>([])
+  const [salesVsCommodity, setSalesVsCommodity] = useState<SalesVsCommodity[]>([])
+  const [inventoryData, setInventoryData] = useState<InventoryData[]>([])
+  const [optimalRestockDay, setOptimalRestockDay] = useState<number | null>(null)
+  const [loading, setLoading] = useState(false)
 
-  // Filter products based on search and category
-  const filteredData = salesData.filter(
-    (item) =>
-      item.product.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      (selectedCategory === "all" || item.category === selectedCategory),
-  )
+  useEffect(() => {
+    fetchSalesData()
+  }, [])
 
-  // Get unique categories for filter
-  const categories = Array.from(new Set(salesData.map((item) => item.category)))
+  const fetchSalesData = async () => {
+    setLoading(true)
 
-  // Mock data for charts
-  const salesVsCommodity = [
-    { month: "Jan", sales: 8500, price: 65 },
-    { month: "Feb", sales: 9200, price: 68 },
-    { month: "Mar", sales: 7800, price: 72 },
-    { month: "Apr", sales: 8900, price: 70 },
-    { month: "May", sales: 9800, price: 75 },
-    { month: "Jun", sales: 10200, price: 78 },
-  ]
+    // In a real app, this would be an API call
+    // For now, we'll simulate with dummy data
 
-  // Category sales data for pie chart
-  const categorySales = [
-    { name: "Packaging", value: 73980 },
-    { name: "Energy", value: 89450 },
-    { name: "Chemicals", value: 32780 },
-    { name: "Services", value: 67890 },
-  ]
+    // Simulate API delay
+    await new Promise((resolve) => setTimeout(resolve, 500))
 
-  // COLORS for pie chart
-  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"]
+    // Generate dummy sales data with Indian products
+    const dummySalesData: ProductSales[] = [
+      {
+        product: "HDPE Containers",
+        category: "Plastics",
+        salesVolume: "12,450",
+        revenue: "₹8,45,230",
+        commodityImpact: "High",
+        inventoryLevel: "Low",
+      },
+      {
+        product: "Jute Packaging",
+        category: "Packaging",
+        salesVolume: "8,320",
+        revenue: "₹5,28,750",
+        commodityImpact: "Medium",
+        inventoryLevel: "Medium",
+      },
+      {
+        product: "Diesel Products",
+        category: "Fuel",
+        salesVolume: "15,780",
+        revenue: "₹12,89,450",
+        commodityImpact: "Very High",
+        inventoryLevel: "High",
+      },
+      {
+        product: "Fertilizer Solutions",
+        category: "Chemicals",
+        salesVolume: "5,230",
+        revenue: "₹6,32,780",
+        commodityImpact: "Medium",
+        inventoryLevel: "Low",
+      },
+      {
+        product: "Logistics Services",
+        category: "Transport",
+        salesVolume: "3,450",
+        revenue: "₹9,67,890",
+        commodityImpact: "High",
+        inventoryLevel: "N/A",
+      },
+      {
+        product: "Cotton Textiles",
+        category: "Textiles",
+        salesVolume: "7,850",
+        revenue: "₹11,45,320",
+        commodityImpact: "High",
+        inventoryLevel: "Medium",
+      },
+      {
+        product: "Basmati Rice",
+        category: "Food",
+        salesVolume: "9,250",
+        revenue: "₹7,85,450",
+        commodityImpact: "Medium",
+        inventoryLevel: "High",
+      },
+      {
+        product: "Spice Extracts",
+        category: "Food",
+        salesVolume: "4,120",
+        revenue: "₹5,65,780",
+        commodityImpact: "Low",
+        inventoryLevel: "Medium",
+      },
+      {
+        product: "Steel Components",
+        category: "Metals",
+        salesVolume: "6,540",
+        revenue: "₹8,92,340",
+        commodityImpact: "Very High",
+        inventoryLevel: "Low",
+      },
+      {
+        product: "Aluminum Products",
+        category: "Metals",
+        salesVolume: "5,780",
+        revenue: "₹7,45,620",
+        commodityImpact: "High",
+        inventoryLevel: "Low",
+      },
+    ]
 
-  const exportData = () => {
-    // In a real app, this would export data to CSV
-    console.log("Exporting data...")
+    // Generate dummy sales vs commodity data
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
+    const dummySalesVsCommodity = months.map((month) => ({
+      month,
+      sales: Math.floor(Math.random() * 10000) + 5000,
+      price: Math.floor(Math.random() * 2000) + 4000, // Indian rupee prices
+    }))
+
+    // Generate dummy inventory data
+    const days = Array.from({ length: 30 }, (_, i) => i + 1)
+    let inventory = 100
+    const dummyInventoryData = days.map((day) => {
+      // Random daily consumption between 2 and 5 units
+      const consumption = Math.random() * 3 + 2
+      inventory = Math.max(0, inventory - consumption)
+      return { day, level: Number(inventory.toFixed(1)) }
+    })
+
+    // Find optimal restock day (when inventory crosses 20)
+    const restock = dummyInventoryData.findIndex((item) => item.level <= 20)
+    setOptimalRestockDay(restock !== -1 ? dummyInventoryData[restock].day : null)
+
+    setSalesData(dummySalesData)
+    setSalesVsCommodity(dummySalesVsCommodity)
+    setInventoryData(dummyInventoryData)
+    setLoading(false)
   }
 
+  const handleSearch = () => {
+    // In a real app, this would filter data from an API or database
+    console.log(`Searching for: ${searchTerm}`)
+    // For demo, we'll just refresh the data
+    fetchSalesData()
+  }
+
+  // Get unique categories for filtering
+  const categories = ["All", ...Array.from(new Set(salesData.map(item => item.category)))]
+
+  // Filter sales data based on search term and category
+  const filteredSalesData = salesData.filter((item) => 
+    item.product.toLowerCase().includes(searchTerm.toLowerCase()) && 
+    (categoryFilter === "All" || item.category === categoryFilter)
+  )
+
+  // Download data as CSV
+  const downloadCSV = () => {
+    // Create CSV content
+    const headers = ["Product", "Category", "Sales Volume", "Revenue", "Commodity Impact", "Inventory Level"];
+    const csvContent = [
+      headers.join(","),
+      ...filteredSalesData.map(item => 
+        [
+          item.product,
+          item.category,
+          item.salesVolume,
+          item.revenue,
+          item.commodityImpact,
+          item.inventoryLevel
+        ].join(",")
+      )
+    ].join("\n");
+
+    // Create a blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'sales_analysis_data.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col md:flex-row justify-between gap-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search products..."
-              className="w-full md:w-[300px] pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+    <div className="space-y-6 bg-black text-white">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-yellow-400">Indian Sales Analysis</h1>
+        <Button variant="outline" size="icon" onClick={downloadCSV} className="text-yellow-400 bg-black border-yellow-400 hover:bg-yellow-400/10">
+          <Download className="h-4 w-4" />
+        </Button>
+      </div>
 
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by Category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {category}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex gap-2">
-          <Select value={selectedTimeframe} onValueChange={setSelectedTimeframe}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Timeframe" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="3m">Last 3 Months</SelectItem>
-              <SelectItem value="6m">Last 6 Months</SelectItem>
-              <SelectItem value="12m">Last 12 Months</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Button variant="outline" size="icon" onClick={exportData}>
-            <Download className="h-4 w-4" />
+      <div className="flex flex-col sm:flex-row gap-4 justify-between">
+        <div className="flex w-full max-w-sm items-center space-x-2">
+          <Input
+            placeholder="Search products..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+          />
+          <Button 
+            type="submit" 
+            onClick={handleSearch} 
+            disabled={loading}
+            className="bg-yellow-400 text-black hover:bg-yellow-500"
+          >
+            <Search className="h-4 w-4 mr-2" />
+            Search
           </Button>
         </div>
+
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-gray-400">Filter by Category:</span>
+          <select 
+            value={categoryFilter} 
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="bg-gray-800 border-gray-700 text-white rounded-md px-3 py-1"
+          >
+            {categories.map(category => (
+              <option key={category} value={category}>{category}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle>Total Revenue</CardTitle>
-            <CardDescription>Overall sales performance</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-1/2" />
-            ) : (
-              <div className="text-3xl font-bold">
-                ${salesData.reduce((sum, item) => sum + item.revenue, 0).toLocaleString()}
-              </div>
-            )}
-            <div className="text-xs text-muted-foreground mt-1">+12.5% from previous period</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle>Total Sales Volume</CardTitle>
-            <CardDescription>Number of units sold</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-1/2" />
-            ) : (
-              <div className="text-3xl font-bold">
-                {salesData.reduce((sum, item) => sum + item.salesVolume, 0).toLocaleString()}
-              </div>
-            )}
-            <div className="text-xs text-muted-foreground mt-1">+8.2% from previous period</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle>Commodity Impact</CardTitle>
-            <CardDescription>Products affected by commodity prices</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <Skeleton className="h-8 w-1/2" />
-            ) : (
-              <div className="flex gap-2">
-                <Badge variant="outline" className="bg-red-100">
-                  High Impact:{" "}
-                  {
-                    salesData.filter((item) => item.commodityImpact === "High" || item.commodityImpact === "Very High")
-                      .length
-                  }
-                </Badge>
-                <Badge variant="outline" className="bg-yellow-100">
-                  Medium Impact: {salesData.filter((item) => item.commodityImpact === "Medium").length}
-                </Badge>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Sales vs Commodity Price</CardTitle>
-            <CardDescription>Relationship between sales and commodity prices</CardDescription>
-          </CardHeader>
-          <CardContent className="h-[350px]">
-            {loading ? (
-              <div className="h-full flex items-center justify-center">
-                <Skeleton className="h-[300px] w-full" />
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={salesVsCommodity}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis yAxisId="left" orientation="left" />
-                  <YAxis yAxisId="right" orientation="right" />
-                  <Tooltip />
-                  <Legend />
-                  <Bar yAxisId="left" dataKey="sales" fill="#8884d8" name="Sales Volume" />
-                  <Bar yAxisId="right" dataKey="price" fill="#82ca9d" name="Commodity Price ($)" />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Sales by Category</CardTitle>
-            <CardDescription>Revenue distribution across product categories</CardDescription>
-          </CardHeader>
-          <CardContent className="h-[350px]">
-            {loading ? (
-              <div className="h-full flex items-center justify-center">
-                <Skeleton className="h-[300px] w-full" />
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={categorySales}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={120}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {categorySales.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, "Revenue"]} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
+      <Card className="bg-gray-900 border-gray-800">
         <CardHeader>
-          <CardTitle>Product Sales Data</CardTitle>
-          <CardDescription>Detailed sales performance and commodity impact</CardDescription>
+          <CardTitle className="text-white">Product Sales Data</CardTitle>
+          <CardDescription className="text-gray-400">Sales performance and commodity impact</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <div className="grid grid-cols-7 border-b px-4 py-2 font-medium">
-              <div className="flex items-center gap-1 cursor-pointer">
-                Product <ArrowUpDown className="h-3 w-3" />
-              </div>
-              <div className="flex items-center gap-1 cursor-pointer">
-                Category <ArrowUpDown className="h-3 w-3" />
-              </div>
-              <div className="flex items-center gap-1 cursor-pointer">
-                Sales Volume <ArrowUpDown className="h-3 w-3" />
-              </div>
-              <div className="flex items-center gap-1 cursor-pointer">
-                Revenue <ArrowUpDown className="h-3 w-3" />
-              </div>
-              <div className="flex items-center gap-1 cursor-pointer">
-                Commodity Impact <ArrowUpDown className="h-3 w-3" />
-              </div>
-              <div className="flex items-center gap-1 cursor-pointer">
-                Inventory Level <ArrowUpDown className="h-3 w-3" />
-              </div>
-              <div className="flex items-center gap-1 cursor-pointer">
-                Trend <ArrowUpDown className="h-3 w-3" />
-              </div>
-            </div>
-            <div className="divide-y">
-              {loading
-                ? Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="grid grid-cols-7 px-4 py-3">
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-4 w-1/2" />
-                      <Skeleton className="h-4 w-1/2" />
-                      <Skeleton className="h-4 w-1/2" />
-                      <Skeleton className="h-4 w-1/2" />
-                      <Skeleton className="h-4 w-1/2" />
-                      <Skeleton className="h-4 w-1/2" />
-                    </div>
-                  ))
-                : filteredData.map((item) => (
-                    <div key={item.id} className="grid grid-cols-7 px-4 py-3">
-                      <div className="font-medium">{item.product}</div>
-                      <div>{item.category}</div>
-                      <div>{item.salesVolume.toLocaleString()}</div>
-                      <div>${item.revenue.toLocaleString()}</div>
-                      <div>
-                        <Badge
-                          variant={
-                            item.commodityImpact === "Very High"
-                              ? "destructive"
-                              : item.commodityImpact === "High"
-                                ? "destructive"
-                                : item.commodityImpact === "Medium"
-                                  ? "default"
-                                  : "outline"
-                          }
-                        >
-                          {item.commodityImpact}
-                        </Badge>
-                      </div>
-                      <div>
-                        <Badge
-                          variant={
-                            item.inventoryLevel === "Low"
-                              ? "destructive"
-                              : item.inventoryLevel === "Medium"
-                                ? "default"
-                                : item.inventoryLevel === "High"
-                                  ? "outline"
-                                  : "secondary"
-                          }
-                        >
-                          {item.inventoryLevel}
-                        </Badge>
-                      </div>
-                      <div>
-                        <Badge
-                          variant={item.trend === "up" ? "default" : item.trend === "down" ? "destructive" : "outline"}
-                        >
-                          {item.trend === "up" ? "↑ Up" : item.trend === "down" ? "↓ Down" : "→ Stable"}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-            </div>
-          </div>
+          <Table>
+            <TableHeader className="bg-gray-800">
+              <TableRow>
+                <TableHead className="text-gray-300">Product</TableHead>
+                <TableHead className="text-gray-300">Category</TableHead>
+                <TableHead className="text-gray-300">Sales Volume</TableHead>
+                <TableHead className="text-gray-300">Revenue</TableHead>
+                <TableHead className="text-gray-300">Commodity Impact</TableHead>
+                <TableHead className="text-gray-300">Inventory Level</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredSalesData.map((item) => (
+                <TableRow key={item.product} className="border-gray-800 hover:bg-gray-800/50">
+                  <TableCell className="font-medium text-white">{item.product}</TableCell>
+                  <TableCell className="text-gray-300">{item.category}</TableCell>
+                  <TableCell className="text-white">{item.salesVolume}</TableCell>
+                  <TableCell className="text-white">{item.revenue}</TableCell>
+                  <TableCell>
+                    <span
+                      className={
+                        item.commodityImpact === "Very High"
+                          ? "text-red-400"
+                          : item.commodityImpact === "High"
+                            ? "text-orange-400"
+                            : item.commodityImpact === "Medium"
+                              ? "text-yellow-400"
+                              : "text-green-400"
+                      }
+                    >
+                      {item.commodityImpact}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={
+                        item.inventoryLevel === "Low"
+                          ? "text-red-400"
+                          : item.inventoryLevel === "Medium"
+                            ? "text-yellow-400"
+                            : item.inventoryLevel === "High"
+                              ? "text-green-400"
+                              : "text-gray-400"
+                      }
+                    >
+                      {item.inventoryLevel}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="bg-gray-900 border-gray-800">
+          <CardHeader>
+            <CardTitle className="text-white">Sales Volume vs Commodity Price</CardTitle>
+            <CardDescription className="text-gray-400">Relationship between sales and commodity prices</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={salesVsCommodity} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                <XAxis dataKey="month" tick={{ fill: "#ccc" }} />
+                <YAxis yAxisId="left" orientation="left" stroke="#FFD700" tick={{ fill: "#ccc" }} />
+                <YAxis yAxisId="right" orientation="right" stroke="#FFFFFF" tick={{ fill: "#ccc" }} />
+                <Tooltip contentStyle={{ backgroundColor: "#222", borderColor: "#444" }} />
+                <Legend wrapperStyle={{ color: "#ccc" }} />
+                <Bar yAxisId="left" dataKey="sales" fill="#FFD700" name="Sales Volume" />
+                <Line yAxisId="right" type="monotone" dataKey="price" stroke="#FFFFFF" name="Commodity Price (₹)" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gray-900 border-gray-800">
+          <CardHeader>
+            <CardTitle className="text-white">Inventory Level and Optimal Restocking</CardTitle>
+            <CardDescription className="text-gray-400">Inventory trends and reorder points</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={inventoryData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                <XAxis 
+                  dataKey="day" 
+                  label={{ value: "Day of Month", position: "insideBottomRight", offset: -10, fill: "#ccc" }} 
+                  tick={{ fill: "#ccc" }}
+                />
+                <YAxis 
+                  label={{ value: "Inventory Level", angle: -90, position: "insideLeft", fill: "#ccc" }} 
+                  tick={{ fill: "#ccc" }}
+                />
+                <Tooltip contentStyle={{ backgroundColor: "#222", borderColor: "#444" }} />
+                <Legend wrapperStyle={{ color: "#ccc" }} />
+                <ReferenceLine y={20} stroke="red" strokeDasharray="3 3" label={{ value: "Reorder Point", fill: "#ccc" }} />
+                {optimalRestockDay && (
+                  <ReferenceLine
+                    x={optimalRestockDay}
+                    stroke="#FFD700"
+                    strokeDasharray="3 3"
+                    label={{ value: `Optimal Restock (Day ${optimalRestockDay})`, position: "top", fill: "#ccc" }}
+                  />
+                )}
+                <Line type="monotone" dataKey="level" stroke="#FFD700" name="Inventory Level" />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
 
+export default SalesAnalysis
