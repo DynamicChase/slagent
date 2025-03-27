@@ -1,6 +1,6 @@
 # auth.py
-import tkinter as tk
 from tkinter import ttk, messagebox
+import tkinter as tk
 
 class LoginPage(tk.Toplevel):
     def __init__(self, master):
