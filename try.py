@@ -1,4 +1,5 @@
 import pandas as pd
+import matplotlib.pyplot as plt
 
 # ------------------------------
 # 1. Load the Product Dataset
@@ -8,7 +9,7 @@ df = pd.read_csv('BigBasket Products.csv')
 # Get unique categories from the dataset as a Series
 unique_categories = pd.Series(df['category'].unique()).reset_index(drop=True)
 
-# Display available categories with index numbers using .items()
+# Display available categories with index numbers
 print("Available Categories:")
 for idx, category in unique_categories.items():
     print(f"{idx}: {category}")
@@ -51,35 +52,88 @@ except ValueError as e:
 selected_sub_category = unique_sub_categories[sub_category_choice]
 print(f"\nYou have selected sub-category: {selected_sub_category}")
 
-# Filter further by the selected sub-category
-final_filtered_df = filtered_df[filtered_df['sub_category'] == selected_sub_category]
+# Filter further by the selected sub-category and make a copy
+final_filtered_df = filtered_df[filtered_df['sub_category'] == selected_sub_category].copy()
 
 # ------------------------------
-# 3. Calculate Expected Prices Using Inflation Forecast
+# 3. Calculate Expected Prices Using Monthly Inflation Forecast
 # ------------------------------
-# Load the inflation forecast CSV (assumes it has 'Year' as index and a column 'Forecasted Inflation Rate (%)')
-inflation_df = pd.read_csv('inflation_forecast_next_5_years.csv', index_col='Year')
+# Load the monthly inflation forecast CSV.
+# The CSV should have columns: 'Date' and 'Forecasted Inflation Rate (%)'
+inflation_df = pd.read_csv('monthly_inflation_forecast.csv', parse_dates=['Date'], index_col='Date')
+inflation_df = inflation_df.sort_index()
+print("\nMonthly Inflation Forecast Data:")
+print(inflation_df.head())
 
-# Option: Use the forecast rate from the last forecasted year
-annual_inflation_rate = inflation_df['Forecasted Inflation Rate (%)'].iloc[-1]
-print(f"\nUsing an annual inflation rate of: {annual_inflation_rate}%")
+# Compute cumulative inflation factors for each forecast month over the next 5 years (60 months)
+cumulative_factors = {}
+cumulative_factor = 1.0
+for forecast_date, row in inflation_df.iterrows():
+    rate = row['Forecasted Inflation Rate (%)']
+    cumulative_factor *= (1 + rate / 100)
+    cumulative_factors[forecast_date.date()] = cumulative_factor
 
-# Define forecast period in years (e.g., 5 years)
-years = 1
-
-# Calculate the expected price using the compound interest formula:
-# Expected Price = Current Price * (1 + inflation_rate/100)^years
-final_filtered_df['Expected Price'] = final_filtered_df['sale_price'] * ((1 + annual_inflation_rate / 100) ** years)
+# For each forecast month, calculate expected price:
+for forecast_date, factor in cumulative_factors.items():
+    col_name = f"Expected Price in {forecast_date.strftime('%Y-%m')}"
+    final_filtered_df[col_name] = final_filtered_df['sale_price'] * factor
 
 # ------------------------------
-# 4. Display and Save the Comparison
+# 4. Create and Display Unique Product List
 # ------------------------------
-# Create a DataFrame with the product name, original sale price, and the expected price
-comparison_df = final_filtered_df[['product', 'sale_price', 'Expected Price']]
+# Create a unique list of products (using product name and sale price)
+unique_products = final_filtered_df[['product', 'sale_price']].drop_duplicates().reset_index(drop=True)
 
-print("\nComparison of Original and Expected Prices (after 5 years):")
-print(comparison_df)
+if unique_products.empty:
+    print("No products found in the selected category and sub-category.")
+    exit()
 
-# Save the comparison to a new CSV file
-comparison_df.to_csv('price_comparison.csv', index=False)
-print("\nComparison of prices saved to 'price_comparison.csv'.")
+print("\nAvailable Products (Unique List):")
+for i, row in unique_products.iterrows():
+    print(f"{i}: {row['product']} (Sale Price: {row['sale_price']})")
+
+# Prompt user to select a product from the unique list
+try:
+    product_choice = int(input("Enter the number corresponding to the product you want to analyze and plot: "))
+    if product_choice < 0 or product_choice >= len(unique_products):
+        raise ValueError("Invalid product number.")
+except ValueError as e:
+    print("Error:", e)
+    exit()
+
+selected_product_name = unique_products.loc[product_choice, 'product']
+print(f"\nSelected Product: {selected_product_name}")
+
+# For plotting, pick one representative row from final_filtered_df for the selected product.
+product_forecast = final_filtered_df[final_filtered_df['product'] == selected_product_name].iloc[0]
+
+# ------------------------------
+# 5. Save Comparison Table
+# ------------------------------
+# List the expected price columns (ordered by forecast date)
+expected_price_cols = [f"Expected Price in {date.strftime('%Y-%m')}" for date in sorted(cumulative_factors.keys())]
+columns_to_show = ['product', 'sale_price'] + expected_price_cols
+comparison_df = final_filtered_df[columns_to_show]
+comparison_df.to_csv('price_comparison_monthly.csv', index=False)
+print("\nComparison of prices saved to 'price_comparison_monthly.csv'.")
+
+# ------------------------------
+# 6. Plot the Forecast for the Selected Product
+# ------------------------------
+# Extract forecasted expected prices for the selected product
+forecast_dates = sorted(cumulative_factors.keys())
+forecast_prices = [product_forecast[f"Expected Price in {date.strftime('%Y-%m')}"] for date in forecast_dates]
+
+# Convert forecast_dates to pandas datetime objects for plotting
+forecast_dates_dt = pd.to_datetime([date.strftime('%Y-%m-01') for date in forecast_dates])
+
+plt.figure(figsize=(12, 6))
+plt.plot(forecast_dates_dt, forecast_prices, marker='o', color='red', label='Forecasted Price')
+plt.axhline(y=product_forecast['sale_price'], color='blue', linestyle='--', label='Original Sale Price')
+plt.xlabel('Date')
+plt.ylabel('Price')
+plt.title(f"Monthly Price Forecast for '{selected_product_name}' for Next 5 Years")
+plt.legend()
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
